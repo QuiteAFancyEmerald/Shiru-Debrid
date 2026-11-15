@@ -187,18 +187,6 @@ function updateTorrent(hash, update) {
 }
 
 /**
- * Merges restored completed torrents and finishes session loading.
- * @param {Torrent[]} detail
- * @returns {void}
- */
-function onCompleted(detail) {
-  debug('Got completed stats request')
-  requestTorrentMedia(detail)
-  completedTorrents.update(torrents => Array.from(new Map([...detail, ...torrents].map(torrent => [torrent.infoHash, torrent])).values()))
-  loadingSession.set(false)
-}
-
-/**
  * Returns available torrents in playback priority order using their saved file metadata.
  * @param mediaId
  * @param episode

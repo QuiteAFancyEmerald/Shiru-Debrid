@@ -265,6 +265,13 @@ export class RealDebridProvider extends DebridProvider {
       })
     }
 
+    // 2) Smart mode: fail fast for torrents the provider does not already hold.
+    const wasInstant = Boolean(uploaded?.ready)
+    if (!wasInstant && !allowUncached) {
+      await this.removeTorrent(torrentId, config)
+      throw new DebridError('Torrent is not cached on Real-Debrid.', { code: 'NOT_CACHED', providerId: this.id })
+    }
+
     // 2) Select all files so the cloud download starts.
     if (uploaded?.statusCode === 0 || uploaded?.statusCode === 1 || uploaded?.statusCode === 2) {
       const form = RealDebridProvider.form({ files: 'all' })
@@ -273,7 +280,6 @@ export class RealDebridProvider extends DebridProvider {
 
     // 3) Wait until the torrent is ready to stream.
     const infoTorrent = await this.waitForReady(torrentId, config, { name, onProgress, signal })
-    const wasInstant = Boolean(uploaded?.ready)
 
     // 4) Files and per-file Real-Debrid links.
     const rawFiles = mapTorrentFiles(infoTorrent)
@@ -289,7 +295,7 @@ export class RealDebridProvider extends DebridProvider {
       torrentId,
       infoHash: resolvedHash,
       name: infoTorrent?.filename || name || safeName,
-      cached: Boolean(wasInstant || uploadsReady(infoTorrent)),
+      cached: wasInstant || uploadsReady(infoTorrent),
       status: 'ready',
       progress: 100,
       files: rawFiles.map((file, index) => ({
@@ -356,13 +362,12 @@ export class RealDebridProvider extends DebridProvider {
     const infoTorrent = await this.getTorrentInfo(torrentId, config, signal)
     const files = Array.isArray(infoTorrent?.files) ? infoTorrent.files : []
     const links = Array.isArray(infoTorrent?.links) ? infoTorrent.links : []
-    let index = files.findIndex(file => String(file?.id) === String(fileId))
+    const index = files.findIndex(file => String(file?.id) === String(fileId))
     let link = index >= 0 ? links[index] || '' : ''
     if (!link && files.length && files.length === links.length) {
       // Positional fallback: files and links are usually index-aligned.
       const position = Number(fileId) || 0
       if (position >= 0 && position < links.length) {
-        index = position
         link = links[position] || ''
       }
     }
