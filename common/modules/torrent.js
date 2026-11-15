@@ -9,6 +9,7 @@ import { writable } from 'simple-store-svelte'
 import { toast } from '@/modules/lib/toast.js'
 import clipboard from '@/modules/lib/clipboard.js'
 import { TORRENT, ELECTRON } from '@/modules/bridge.js'
+import { debrid, normalizeInfoHash } from '@/modules/debrid/index.js'
 import { get } from 'svelte/store'
 import Debug from 'debug'
 const debug = Debug('ui:torrent')
@@ -51,7 +52,10 @@ loadedTorrent.subscribe(torrent => {
 clipboard.addEventListener('text', ({ detail }) => {
   for (const { text } of detail) {
     if (page.value !== page.WATCH_TOGETHER && torrentRx.exec(text)) {
-      if (settings.value.stageImportedTorrents) stage(text)
+      // FORK PATCH (debrid-only): staging is forbidden in Always-Debrid mode,
+      // so imported torrents take the debrid-routed add() path instead.
+      const mayStage = settings.value.stageImportedTorrents && debrid.getMode() !== 'always'
+      if (mayStage) stage(text)
       else {
         media.value = { torrent: true }
         add(text, null, null, true)
@@ -64,7 +68,8 @@ if (!SUPPORTS.isAndroid) {
     for (const file of detail) {
       if (file.name.endsWith('.torrent')) {
         const torrentID = new Uint8Array(await file.arrayBuffer())
-        if (settings.value.stageImportedTorrents) stage(torrentID)
+        const mayStage = settings.value.stageImportedTorrents && debrid.getMode() !== 'always'
+        if (mayStage) stage(torrentID)
         else {
           media.value = { torrent: true }
           add(torrentID)
@@ -100,8 +105,22 @@ TORRENT.portRequest(_settings).then(async () => {
   TORRENT.onRequest(opts => {
     ELECTRON.showAndFocus()
     debug(`Got torrent request for:`, JSON.stringify(opts))
-    if (settings.value.stageImportedTorrents) stage(opts.magnet, null, null, opts.base64)
+    // FORK PATCH (debrid-only): route RSS/extension autoplay through the
+    // debrid-routed add() path in Always-Debrid mode instead of staging.
+    const mayStage = settings.value.stageImportedTorrents && debrid.getMode() !== 'always'
+    if (mayStage) stage(opts.magnet, null, null, opts.base64)
     else add(opts.magnet, null, null, null, opts.base64)
+  })
+  // FORK PATCH (debrid-only): reinitialize the torrent worker when the debrid
+  // mode changes, so its swarm-dead construction and hard P2P block always
+  // reflect the current mode instead of waiting for the next app start.
+  let lastDebridMode = settings.value.debridMode
+  settings.subscribe(value => {
+    if (value.debridMode !== lastDebridMode) {
+      lastDebridMode = value.debridMode
+      debug('Debrid mode changed:', lastDebridMode, '- reloading torrent worker')
+      TORRENT.reload()
+    }
   })
 }).catch(error => notify('error', error.message))
 
@@ -257,13 +276,99 @@ function requestTorrentMedia(torrents) {
   }
 }
 
-export async function add(torrentID, search, hash, magnet, base64 = false) {
+/** @type {AbortController | null} */
+let activeDebridResolve = null
+
+/**
+ * Determines whether playback should resolve via the active Debrid provider.
+ *
+ * @param {string} torrentID
+ * @param {string | false} hash
+ * @param {'auto' | 'debrid' | 'torrent'} mode
+ * @returns {boolean}
+ */
+function shouldAttemptDebrid(torrentID, hash, mode = 'auto') {
+  if (debrid.getMode() === 'always') return true
+  if (mode === 'torrent') return false
+  if (mode === 'debrid') return true
+  if (!debrid.isEnabled()) return false
+  const debridMode = debrid.getMode()
+  if (debridMode === 'manual') return false
+  const cached = debrid.getCachedEntry(hash || torrentID)
+  if (cached && cached.cached === false) return false
+  return true
+}
+
+export async function add(torrentID, search, hash, magnet, base64 = false, debridOpts = {}) {
   if (torrentID) {
-    debug('Adding torrent', JSON.stringify({ torrentID, search, hash, magnet }))
+    debug('Adding torrent', JSON.stringify({ torrentID, search, hash, magnet, debridOpts }))
+    activeDebridResolve?.abort()
+    activeDebridResolve = null
     files.set([])
     page.navigateTo(page.PLAYER)
     media.value = search ? { media: (search.media || media.value?.media), episode: (search.episode || media.value?.episode), ...(media.value?.torrent ? { torrent: true } : { feed: true }) } : { torrent: true }
     if (SUPPORTS.isAndroid && !settings.value.enableExternal && settings.value.autoFullscreen) document.querySelector('.content-wrapper').requestFullscreen() // this WILL not work with auto-select torrents due to permissions check.
+
+    const requestedMode = debridOpts?.mode || 'auto'
+    if (shouldAttemptDebrid(torrentID, hash, requestedMode)) {
+      if (!debrid.isEnabled()) {
+        notify('error', 'Debrid is not enabled or missing an API key.')
+        return
+      }
+      const controller = new AbortController()
+      activeDebridResolve = controller
+      const allowUncached = requestedMode === 'debrid' || debrid.getMode() === 'always'
+      let lastToastProgress = -1
+      try {
+        const resolved = await debrid.resolveTorrent(torrentID, {
+          hash: (equalsIgnoreCase(hash, torrentID) && torrentID) || hash,
+          magnet,
+          base64,
+          name: debridOpts?.name || search?.media?.title?.userPreferred,
+          allowUncached,
+          signal: controller.signal,
+          onProgress: ({ status: dlStatus, progress }) => {
+            if (controller.signal.aborted) return
+            if (progress !== lastToastProgress) {
+              lastToastProgress = progress
+              toast(`Debrid (${debrid.status.value.providerName || 'Cloud'})`, {
+                description: `${dlStatus ? `${dlStatus} · ` : ''}${progress}% cached on server...`,
+                dedupe: true
+              })
+            }
+          }
+        })
+        if (controller.signal.aborted) return
+        activeDebridResolve = null
+        const torrent = await TORRENT.streamDebrid({
+          providerId: resolved.providerId,
+          providerName: resolved.providerName || debrid.status.value.providerName || resolved.providerId,
+          torrentId: resolved.torrentId,
+          infoHash: resolved.infoHash,
+          torrentName: resolved.name,
+          magnet: normalizeInfoHash(resolved.infoHash) ? `magnet:?xt=urn:btih:${resolved.infoHash}` : undefined,
+          files: resolved.files.map(file => ({
+            id: file.id,
+            name: file.name,
+            path: file.path,
+            length: file.length,
+            remoteUrl: file.streamUrl,
+            headers: file.headers
+          }))
+        }, onReady, req => debrid.handleUrlRequest(req))
+        if (torrent?.infoHash && search) await setTorrentMedia(torrent.infoHash, search)
+        return
+      } catch (error) {
+        if (controller.signal.aborted || error?.code === 'ABORTED') return
+        if (activeDebridResolve === controller) activeDebridResolve = null
+        if (requestedMode === 'debrid' || debrid.getMode() === 'always') {
+          notify('error', error)
+          return
+        }
+        debug('Debrid unavailable/uncached, falling back to P2P torrent', error?.code || error?.message)
+      }
+    }
+
     try {
       const torrent = await TORRENT.stream(torrentID, (equalsIgnoreCase(hash, torrentID) && torrentID) || false, magnet, base64, onReady)
       if (torrent?.infoHash && search) await setTorrentMedia(torrent.infoHash, search)
@@ -273,6 +378,13 @@ export async function add(torrentID, search, hash, magnet, base64 = false) {
   }
 }
 export async function stage(torrentID, search, hash, base64 = false) {
+  // FORK PATCH (debrid-only): staging hands the torrent to the P2P worker
+  // (metadata + peers) — never allowed in Always-Debrid mode.
+  if (debrid.getMode() === 'always') {
+    debug('Fork: torrent staging blocked in debrid-only mode.', torrentID)
+    notify('error', 'Debrid-only mode: background torrent staging is disabled.')
+    return false
+  }
   if (torrentID) {
     debug('Pre-Adding torrent', JSON.stringify({ torrentID, search, hash }))
     let torrent
@@ -300,6 +412,8 @@ export async function unload(torrent, hash, force = false) {
     debug('Unloading torrent', JSON.stringify({ torrent, hash }))
     TORRENT.unload({ torrent, hash }).catch(error => notify('error', error))
   } else if (force) {
+    activeDebridResolve?.abort()
+    activeDebridResolve = null
     files.value = []
     media.value = { ...media.value, display: true } // set display to true to allow the 'Last Watched' button to remain on the SideBar.
     TORRENT.unload(null).catch(error => notify('error', error)) // this will not override the cached loadedTorrent, we rely on users to enable disableStartupTorrent if they don't want to load the previous torrent when the app starts.
@@ -385,17 +499,16 @@ async function setupTorrentClient() {
   completedTorrents.value = []
   currentStats.set({ infoHash: undefined, fileProgress: 0, numPeers: 0, uploadSpeed: 0, downloadSpeed: 0 })
   await TORRENT.subscribe(notify, updateTorrent)
-  if (!settings.value.disableStartupTorrent) TORRENT.restoreSession((cache.getEntry(caches.GENERAL, 'stagingTorrents') || []).filter(Boolean), (cache.getEntry(caches.GENERAL, 'seedingTorrents') || []).filter(Boolean), (cache.getEntry(caches.GENERAL, 'completedTorrents') || []).filter(Boolean), cache.getEntry(caches.GENERAL, 'loadedTorrent'), onReady).then(onCompleted).catch(error => notify('error', error.message))
-  else {
-    debug(`Unloading torrent(s) from previous session`)
-    TORRENT.unload(cache.getEntry(caches.GENERAL, 'loadedTorrent')).catch(error => notify('error', error))
-    const unloadedCompleted = Array.from(new Set([...(cache.getEntry(caches.GENERAL, 'completedTorrents') || []), ...(cache.getEntry(caches.GENERAL, 'seedingTorrents') || []), ...(cache.getEntry(caches.GENERAL, 'stagingTorrents') || [])].map(torrent => torrent?.infoHash ?? torrent))).filter(Boolean)
-    cache.setEntry(caches.GENERAL, 'loadedTorrent', {})
-    cache.setEntry(caches.GENERAL, 'completedTorrents', unloadedCompleted)
-    cache.setEntry(caches.GENERAL, 'stagingTorrents', [])
-    cache.setEntry(caches.GENERAL, 'seedingTorrents', [])
-    TORRENT.restoreSession(null, null, unloadedCompleted).then(onCompleted).catch(error => notify('error', error.message))
-  }
+  // FORK PATCH (debrid-only): session restore previously re-added cached torrents
+  // directly into the P2P worker, bypassing the debrid routing gate. Previous-session
+  // state is discarded instead of being restored.
+  debug('Fork: skipping torrent session restore (debrid-only build)')
+  TORRENT.unload(cache.getEntry(caches.GENERAL, 'loadedTorrent')).catch(error => notify('error', error.message))
+  const unloadedCompleted = Array.from(new Set([...(cache.getEntry(caches.GENERAL, 'completedTorrents') || []), ...(cache.getEntry(caches.GENERAL, 'seedingTorrents') || []), ...(cache.getEntry(caches.GENERAL, 'stagingTorrents') || [])].map(torrent => torrent?.infoHash ?? torrent))).filter(Boolean)
+  cache.setEntry(caches.GENERAL, 'loadedTorrent', {})
+  cache.setEntry(caches.GENERAL, 'completedTorrents', unloadedCompleted)
+  cache.setEntry(caches.GENERAL, 'stagingTorrents', [])
+  cache.setEntry(caches.GENERAL, 'seedingTorrents', [])
 }
 
 function notify(type, detail) {

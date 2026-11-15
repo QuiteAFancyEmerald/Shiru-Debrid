@@ -1,6 +1,7 @@
 import { app, ipcMain, shell, net } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { development } from './util.js'
+import { getForkSettings } from './forkSettings.js'
 import semver from 'semver'
 
 /**
@@ -12,10 +13,12 @@ import semver from 'semver'
  */
 
 /** @type {UpdateFeedSource} */
-const PRIMARY_SOURCE = { provider: atob('Z2l0aHVi'), owner: atob('Um9ja2luQ2hhb3M='), repo: atob('U2hpcnU=') }
+const PRIMARY_SOURCE = { provider: atob('Z2l0aHVi'), owner: atob('UXVpdGVBRmFuY3lFbWVyYWxk'), repo: atob('U2hpcnUtRGVicmlk') } // github:QuiteAFancyEmerald/Shiru-Debrid
 
+// FORK PATCH: upstream's generic mirror (cdn.shiru.app) is removed so nothing
+// can ever fall back to RockinChaos/Shiru release assets.
 /** @type {UpdateFeedSource[]} */
-const FALLBACK_SOURCES = [{ provider: atob('Z2VuZXJpYw=='), url: atob('Y2RuLnNoaXJ1LmFwcA==') }]
+const FALLBACK_SOURCES = []
 
 /**
  * Manages application updates for Electron using electron-updater.
@@ -43,6 +46,14 @@ export default class Updater {
    * @param {() => import('electron').BrowserWindow} torrentWindow Function returning torrent window
    */
   constructor (window, torrentWindow) {
+    // FORK PATCH: update feed targets QuiteAFancyEmerald/Shiru-Debrid, and checks
+    // stay completely inert unless they are enabled in Settings → Fork. Even when
+    // enabled, this AppImage is a "manual install" to electron-updater, so it
+    // only notifies and links the releases page — it can never self-replace.
+    if (getForkSettings().updatePolicy !== 'fork') {
+      this.destroyed = true
+      return
+    }
     this.currentVersion = app.getVersion()
     this.window = window
     this.torrentWindow = torrentWindow
@@ -163,7 +174,7 @@ export default class Updater {
   /**
    * Determines if an update should be skipped based on version and channel.
    * @param {string} version Version string to check
-   * @returns {boolean} True if update should be skipped
+   * @returns {boolean} True if an update should be skipped
    */
   skipUpdate(version) {
     const validVersion = semver.valid(version)

@@ -774,6 +774,17 @@ export const defaults = {
   subtitleLanguage: 'eng',
   audioLanguage: 'jpn',
   torrentProvider: [],
+  debridEnabled: false,
+  debridProvider: 'torbox',
+  debridMode: 'cached',
+  debridCheckCache: true,
+  debridPrioritizeCached: true,
+  debridConfigs: {
+    torbox: {
+      apiKey: '',
+      seedPreference: 1
+    }
+  },
   enableDoH: false,
   doHURL: 'https://cloudflare-dns.com/dns-query',
   disableSubtitleBlur: SUPPORTS.isAndroid,
@@ -851,6 +862,9 @@ export function getTorrentSettings(value, userID, debug) {
     playerPath: value.playerPath,
     seedingLimit: value.seedingLimit,
     trackers: value.trackers,
+    // FORK PATCH (debrid-only): forward the debrid mode to the torrent worker
+    // so it can enforce the hard P2P block (see client/core/webtorrent.js).
+    debridMode: value.debridMode,
     debug
   }
 }
