@@ -347,11 +347,11 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@rockinchaos/private-ip':
-        specifier: ^3.1.1
-        version: 3.1.1
+        specifier: ^3.2.0
+        version: 3.2.0
       anitomyscript:
-        specifier: github:ThaUnknown/anitomyscript#42290c4b3f256893be08a4e89051f448ff5e9d00
-        version: https://codeload.github.com/ThaUnknown/anitomyscript/tar.gz/42290c4b3f256893be08a4e89051f448ff5e9d00
+        specifier: github:RockinChaos/anitomyscript#42290c4b3f256893be08a4e89051f448ff5e9d00
+        version: https://codeload.github.com/RockinChaos/anitomyscript/tar.gz/42290c4b3f256893be08a4e89051f448ff5e9d00
       bottleneck:
         specifier: ^2.19.5
         version: 2.19.5
@@ -359,8 +359,8 @@ importers:
         specifier: ^4.4.2
         version: 4.4.2
       dompurify:
-        specifier: ^3.4.17
-        version: 3.4.17
+        specifier: ^3.4.18
+        version: 3.4.18
       fast-deep-equal:
         specifier: ^3.1.3
         version: 3.1.3
@@ -377,8 +377,8 @@ importers:
         specifier: 0.455.0
         version: 0.455.0(patch_hash=0609c957d625c84712d92a612c0fe92d6b06ae161e98c32f1b6b5694e5ff66ed)(svelte@4.2.20)
       marked:
-        specifier: ^18.1.3
-        version: 18.1.3
+        specifier: ^18.2.1
+        version: 18.2.1
       ms:
         specifier: ^2.1.3
         version: 2.1.3
@@ -410,8 +410,8 @@ importers:
         specifier: ^0.12.0
         version: 0.12.0(svelte@4.2.20)
       tldts:
-        specifier: ^7.4.19
-        version: 7.4.19
+        specifier: ^7.4.28
+        version: 7.5.4
       video-deband:
         specifier: ^1.0.9
         version: 1.0.9
@@ -441,8 +441,8 @@ importers:
         specifier: ^10.0.7
         version: 10.0.7
       electron:
-        specifier: 45.2.3
-        version: 45.2.3(supports-color@10.2.2)
+        specifier: 45.3.2
+        version: 45.3.2(supports-color@10.2.2)
       electron-builder:
         specifier: ^26.18.1
         version: 26.18.1(electron-builder-squirrel-windows@26.18.1)(supports-color@10.2.2)
@@ -1189,8 +1189,8 @@ packages:
     resolution: {gitHosted: true, integrity: sha512-Qw+2HfWp6ruk1NqioCXEe8zvTSCBr8o27SwRWWAfqeV/CKS+L6jwvSAbDiwMRct1ECdbwhWJp1RtPPUHluE41w==, tarball: https://codeload.github.com/RockinChaos/matroska-metadata/tar.gz/51df7d575b6390fef51def2673acdf44a3fbe251}
     version: 1.1.2
 
-  '@rockinchaos/private-ip@3.1.1':
-    resolution: {integrity: sha512-6FSJlfZzcm+ckz5jg6rtpGUJxSLcT5y1i9bYTGbLivC/sKeqN7oc/b/i/FKuWxlIVvbYIVACwjhjCw7BLXvW0g==}
+  '@rockinchaos/private-ip@3.2.0':
+    resolution: {integrity: sha512-NeOcHyIoOwO/AvU+Hi5s08eH82i+4EZtlY+6oASSTbt7IHwwsd0WLafUgqadJ5WpnofB4Vss0egxxShUFgZzCQ==}
     engines: {node: '>=18'}
 
   '@sapphire/async-queue@1.5.5':
@@ -1503,8 +1503,8 @@ packages:
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
 
-  anitomyscript@https://codeload.github.com/ThaUnknown/anitomyscript/tar.gz/42290c4b3f256893be08a4e89051f448ff5e9d00:
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/ThaUnknown/anitomyscript/tar.gz/42290c4b3f256893be08a4e89051f448ff5e9d00}
+  anitomyscript@https://codeload.github.com/RockinChaos/anitomyscript/tar.gz/42290c4b3f256893be08a4e89051f448ff5e9d00:
+    resolution: {gitHosted: true, integrity: sha512-s+C9tbRiY/h+xhmPb0rZF6gS8u+m9zUEVfsf3htg6H/wUx1Pntb3XaYjCRR9YUdvxsmEWAPWa5s5aWvyq+VW8w==, tarball: https://codeload.github.com/RockinChaos/anitomyscript/tar.gz/42290c4b3f256893be08a4e89051f448ff5e9d00}
     version: 2.0.5
 
   ansi-regex@5.0.1:
@@ -2333,8 +2333,8 @@ packages:
     resolution: {integrity: sha512-GrwoxYN+uWlzO8uhUXRl0P+kHE4GtVPfYzVLcUxPL7KNdHKj66vvlhiweIHqYYXWlw+T8iLMp42Lm67ghw4WMQ==}
     engines: {node: '>= 4'}
 
-  dompurify@3.4.17:
-    resolution: {integrity: sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==}
+  dompurify@3.4.18:
+    resolution: {integrity: sha512-ofe3wI/uNm68HInABYFJYqQxRw1EaKAjNdrFVKqjUY+UZurvNd2L/HuQe097s/4RivWiZyP6tT7aoT8atjfhwg==}
 
   domutils@2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
@@ -2397,8 +2397,8 @@ packages:
     resolution: {integrity: sha512-bO3y10YikuUwUuDUQRM4KfwNkKhnpVO7IPdbsrejwN9/AABJzzTQ4GeHwyzNSrVO+tEH3/Np255a3sVZpZDjvg==}
     engines: {node: '>=8.0.0'}
 
-  electron@45.2.3:
-    resolution: {integrity: sha512-Vurzu5UOA5nTGT4LqIwXD16QFGrOZdiXxF+1UP4KNsAOo/YtDcT3/u0jhP4WSwNJ0iLrLDi85hzBJ0arnGDhyw==}
+  electron@45.3.2:
+    resolution: {integrity: sha512-bPO0MMvJCdKdPfXgd3ES8zupu+ocr6XmSuRGwyZazTiigTz8jE7rwukSkck0iomS6UZeFuCwzu0uanMD/D34uw==}
     engines: {node: '>= 22.12.0'}
     hasBin: true
 
@@ -3045,6 +3045,10 @@ packages:
     resolution: {integrity: sha512-9VGk3HGanVE6JoZXHiCpnGy5X0jYDnN4EA4lntFPj+1vIWlFhIylq2CrrCOJH9EAhc5CYhq18F2Av2tgoAPsYQ==}
     engines: {node: '>= 10'}
 
+  ipaddr.js@2.5.0:
+    resolution: {integrity: sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==}
+    engines: {node: '>= 10'}
+
   is-arrayish@0.2.1:
     resolution: {integrity: sha512-zz06S8t0ozoDXMG+ube26zeCTNXcKIPJZJi8hBrF4idCLms4CG9QtK7qBl1boi5ODzFpjswb5JPmHCbMpjaYzg==}
 
@@ -3395,8 +3399,8 @@ packages:
     resolution: {integrity: sha512-hdN1wVrZbb29eBGiGjJbeP8JbKjq1urkHJ/LIP/NY48MZ1QVXUsQBV1G1zvYFHn1XE06cwjBsOI2K3Ulnj1YXQ==}
     engines: {node: '>=8'}
 
-  marked@18.1.3:
-    resolution: {integrity: sha512-9ChMH8EVVgjgID49nsL6IWxWk5c6GtAsq/xw7U1ggkjkU5AGuv68oLTVlFRtvcUYZtpbNyjyvGo3YDu0fGapiw==}
+  marked@18.2.1:
+    resolution: {integrity: sha512-ii4bxCTCqqwpT86XZWgJNs+ZnAIZksmLGYMViWA7PDIXYIeNo1x6cDdX3JOip9NM/cI6p8z57FxliACboTruMA==}
     engines: {node: '>= 20'}
     hasBin: true
 
@@ -4725,11 +4729,11 @@ packages:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
 
-  tldts-core@7.4.19:
-    resolution: {integrity: sha512-goNXV6Ho9TIOfpJZanTd6CKG5DyYgYAL+k+22T0SLh8l6+KHIfBUPFuePuSZv05UttIaaLmI9tb7TmGIdK5AkQ==}
+  tldts-core@7.5.4:
+    resolution: {integrity: sha512-9+4zWtKEDZ3V3FoZ1B97rv+5z5oqp7yeXGVze3CxgQ+CJro9do9DCPD00wxstYZDXDMXsurkBerFfiB6GYtPbA==}
 
-  tldts@7.4.19:
-    resolution: {integrity: sha512-48dH6aSpQnpbzDUc4vIQZ1VjB8tkK+e8c1yx05/SZK+rkssgjEOlxDd/yU8/a4vGYQ9vRgJr9dwMq9TJ0b3X2Q==}
+  tldts@7.5.4:
+    resolution: {integrity: sha512-Rn2ABgjHZrA+jzqom5zhxA0hLohzYrIgfCPyhpTUxqsUrcsBYuab49LseR9waB9Jr8/MxdodvMHA91oRiGLO3Q==}
     hasBin: true
 
   tmp-promise@3.0.3:
@@ -6132,11 +6136,11 @@ snapshots:
       pako: 3.0.3
       uint8-util: 2.3.2(patch_hash=3a3d8b54baae3a75396ed47adb7fff8893a0bad663add0224e69e2343c24df57)
 
-  '@rockinchaos/private-ip@3.1.1':
+  '@rockinchaos/private-ip@3.2.0':
     dependencies:
       '@chainsafe/is-ip': 2.1.0
       ip-regex: 5.0.0
-      ipaddr.js: 2.4.0
+      ipaddr.js: 2.5.0
       netmask: 2.1.1
 
   '@sapphire/async-queue@1.5.5': {}
@@ -6541,7 +6545,7 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
-  anitomyscript@https://codeload.github.com/ThaUnknown/anitomyscript/tar.gz/42290c4b3f256893be08a4e89051f448ff5e9d00: {}
+  anitomyscript@https://codeload.github.com/RockinChaos/anitomyscript/tar.gz/42290c4b3f256893be08a4e89051f448ff5e9d00: {}
 
   ansi-regex@5.0.1: {}
 
@@ -7471,7 +7475,7 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.4.17:
+  dompurify@3.4.18:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -7582,7 +7586,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron@45.2.3(supports-color@10.2.2):
+  electron@45.3.2(supports-color@10.2.2):
     dependencies:
       '@electron-internal/extract-zip': 1.0.5
       '@electron/get': 5.0.0(supports-color@10.2.2)
@@ -8313,6 +8317,8 @@ snapshots:
 
   ipaddr.js@2.4.0: {}
 
+  ipaddr.js@2.5.0: {}
+
   is-arrayish@0.2.1: {}
 
   is-core-module@2.16.2:
@@ -8623,7 +8629,7 @@ snapshots:
 
   map-obj@4.3.0: {}
 
-  marked@18.1.3: {}
+  marked@18.2.1: {}
 
   matcher@3.0.0:
     dependencies:
@@ -10051,11 +10057,11 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
 
-  tldts-core@7.4.19: {}
+  tldts-core@7.5.4: {}
 
-  tldts@7.4.19:
+  tldts@7.5.4:
     dependencies:
-      tldts-core: 7.4.19
+      tldts-core: 7.5.4
 
   tmp-promise@3.0.3:
     dependencies:
