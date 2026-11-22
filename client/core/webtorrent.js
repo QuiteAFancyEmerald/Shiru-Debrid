@@ -821,11 +821,17 @@ export default class TorrentClient {
         this.metadata = null
         this.currentFile = null
         this.debrid.currentFile = debridFile
-        await debridFile.ensureRemoteUrl().catch(() => null)
         const isExternal = Boolean(external && (SUPPORTS.isAndroid || this.settings.playerPath))
         if (!isExternal) {
+          // FORK PATCH (debrid-only): attach the subtitle parser before resolving the
+          // stream URL so its `iterator` subscription exists before the local proxy
+          // can serve the first range request — which can complete while the lazy
+          // URL resolution below is still pending. The parser's own eager read of
+          // the container head goes through the same deduplicated URL resolution,
+          // so no extra provider call is made.
           this.metadata = new Metadata(/** @type {any} */ (debridFile), /** @type {any} */ (this.debrid.activeTorrent.files))
         }
+        await debridFile.ensureRemoteUrl().catch(() => null)
         this.updateTorrent(this.debrid.activeTorrent.infoHash, {
           current: {
             id: this.debrid.activeTorrent.infoHash,

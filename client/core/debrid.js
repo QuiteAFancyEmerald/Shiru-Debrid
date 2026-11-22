@@ -38,6 +38,24 @@ function resolveContentType(filename, upstreamType) {
 }
 
 /**
+ * Wraps an upstream response body reader as an async byte iterator so the proxied
+ * stream can be handed to subscribers (the matroska subtitle parser) through the
+ * file's `iterator` event, mirroring the per-range iterator the webtorrent HTTP
+ * server creates for every served GET (webtorrent/lib/server.js:153-159).
+ *
+ * @param {ReadableStreamDefaultReader<Uint8Array>} reader
+ * @param {AbortSignal} signal
+ * @returns {AsyncIterableIterator<Uint8Array>}
+ */
+async function* responseBodyIterator(reader, signal) {
+  while (!signal.aborted) {
+    const { done, value } = await reader.read().catch(() => ({ done: true, value: undefined }))
+    if (done) return
+    if (value && value.byteLength) yield value
+  }
+}
+
+/**
  * Executes an HTTP request inside the CORS-free Node runtime on behalf of the renderer.
  *
  * @param {{
@@ -120,6 +138,8 @@ export async function executeDebridRequest(options) {
 export class DebridFile {
   /** @type {Set<AbortController>} */
   #activeControllers = new Set()
+  /** @type {Set<(payload: { iterator: AsyncIterable<Uint8Array>, req: unknown, file: DebridFile }, callback: (target: AsyncIterable<Uint8Array>) => void) => void>} */
+  #iteratorHandlers = new Set()
 
   /**
    * @param {{
@@ -155,27 +175,50 @@ export class DebridFile {
   }
 
   /**
-   * FORK PATCH (debrid-only): matroska-metadata subscribes `file.on('iterator')`
-   * to stream-parse mkv/webm containers. DebridFile is not a webtorrent
-   * TorrentFile, so the subscription is serviced immediately with DebridFile's
-   * own HTTP-range async iterator.
+   * FORK PATCH (debrid-only): webtorrent TorrentFile is an EventEmitter, and its
+   * HTTP server emits `file.emit('iterator', { iterator, req, file }, target => ...)`
+   * for every GET range request it serves (webtorrent/lib/server.js:153-159) so
+   * subscribed matroska parsers can wrap the served stream in `parseStream` and
+   * extract real-time subtitle packets. DebridFile is not a webtorrent file, so it
+   * replicates that contract with a minimal subscriber set: `client/lib/metadata.js`
+   * subscribes `handleIterator` once, per mkv/webm file being played.
    *
    * @param {string} event Event name ('iterator').
-   * @param {(payload: { iterator: AsyncIterable<Uint8Array> }) => void} handler
+   * @param {(payload: { iterator: AsyncIterable<Uint8Array>, req: unknown, file: DebridFile }, callback: (target: AsyncIterable<Uint8Array>) => void) => void} handler
    */
   on(event, handler) {
     if (event !== 'iterator' || this.destroyed || typeof handler !== 'function') return
-    queueMicrotask(() => {
-      if (this.destroyed) return
-      try { handler({ iterator: this[Symbol.asyncIterator]({}) }) } catch {}
-    })
+    this.#iteratorHandlers.add(handler)
   }
 
   /**
-   * No-op stub matching the iterator lifecycle unsubscription in metadata.js.
-   * @param {string} event Event name.
+   * Removes a previously subscribed `iterator` handler (mirrors EventEmitter#off).
+   * @param {string} event Event name ('iterator').
+   * @param {(...args: any[]) => void} [handler]
    */
-  off(event) {}
+  off(event, handler) {
+    if (event !== 'iterator') return
+    this.#iteratorHandlers.delete(handler)
+  }
+
+  /**
+   * Emits the `iterator` event with webtorrent server semantics: every subscriber
+   * receives `(payload, callback)` and can synchronously call `callback(transformed)`
+   * to swap the served iterator for a transform. Callbacks are shared so, as in
+   * webtorrent, the last transform to be set wins.
+   *
+   * @param {string} event Event name ('iterator').
+   * @param {{ iterator: AsyncIterable<Uint8Array>, req: unknown, file: DebridFile }} payload
+   * @param {(target: AsyncIterable<Uint8Array>) => void} [callback]
+   */
+  emit(event, payload, callback) {
+    if (event !== 'iterator' || this.destroyed || !this.#iteratorHandlers.size) return
+    for (const handler of [...this.#iteratorHandlers]) {
+      try { handler(payload, callback) } catch (error) {
+        console.warn(`Debrid subtitle parser hook failed for ${this.name}:`, error)
+      }
+    }
+  }
 
   /**
    * Ensures a fresh direct remote URL is available.
@@ -290,6 +333,7 @@ export class DebridFile {
 
   destroy() {
     this.destroyed = true
+    this.#iteratorHandlers.clear()
     for (const controller of this.#activeControllers) {
       try { controller.abort() } catch {}
     }
@@ -571,12 +615,23 @@ export class DebridManager extends EventEmitter {
       }
 
       const reader = upstream.body.getReader()
+      const iterator = responseBodyIterator(reader, controller.signal)
+
+      // FORK PATCH (debrid-only): mirror webtorrent/lib/server.js:153-159 — offer
+      // the byte stream being served to subscribed matroska parsers, which wrap it
+      // in `parseStream` to extract real-time subtitle packets. metadata.js's
+      // transform guarantees the exact served bytes still reach the player even
+      // when parsing fails, and playback is untouched when no parser is attached.
+      let transform = null
+      if (req.method === 'GET') {
+        file.emit('iterator', { iterator, req, file }, target => { transform = target })
+      }
+
       try {
-        while (!controller.signal.aborted) {
-          const { done, value } = await reader.read()
-          if (done || closed || controller.signal.aborted) break
-          if (value && value.byteLength) {
-            if (!res.write(value)) {
+        for await (const chunk of transform || iterator) {
+          if (closed || controller.signal.aborted) break
+          if (chunk && chunk.byteLength) {
+            if (!res.write(chunk)) {
               await new Promise(resolve => res.once('drain', resolve))
             }
           }

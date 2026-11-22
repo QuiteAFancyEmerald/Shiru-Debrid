@@ -33,7 +33,54 @@ export default class Metadata {
   /** @type {boolean} */
   destroyed = false
   /** @type {(event: {iterator: AsyncIterable<Uint8Array>}, cb: (iterator: AsyncIterable<Uint8Array>) => void) => void} */
-  handleIterator = ({ iterator }, cb) => cb(this.destroyed ? iterator : this.metadata.parseStream(iterator))
+  handleIterator = ({ iterator }, cb) => cb(this.destroyed ? iterator : this.#parseTransform(iterator))
+
+  /** @type {boolean} */
+  parseFailureLogged = false
+
+  /**
+   * Serves the requested byte range through the matroska stream parser so subtitle
+   * packets are emitted in real time, while guaranteeing the original bytes always
+   * reach the player: chunks the parser has pulled but not yet re-yielded are kept
+   * and replayed from the same position when parsing fails mid-stream (e.g. the
+   * eager container read died), then the remainder of the stream continues raw.
+   * @private
+   * @param {AsyncIterable<Uint8Array>} iterator
+   * @returns {AsyncIterable<Uint8Array>}
+   */
+  async *#parseTransform(iterator) {
+    const puller = iterator[Symbol.asyncIterator]()
+    /** @type {Uint8Array[]} */
+    const pending = []
+    const recorded = async function* () {
+      // Manual pulls — closing this wrapper must not close the underlying iterator,
+      // so a failed parse can resume it raw from the same position.
+      while (true) {
+        const { done, value } = await puller.next()
+        if (done) return
+        pending.push(value)
+        yield value
+      }
+    }
+    try {
+      for await (const chunk of this.metadata.parseStream(recorded())) {
+        if (pending[0] === chunk) pending.shift()
+        yield chunk
+      }
+    } catch (error) {
+      if (this.destroyed) return
+      if (!this.parseFailureLogged) {
+        this.parseFailureLogged = true
+        console.warn('Subtitle stream parsing failed; playing on without subtitles:', error)
+      }
+      for (const chunk of pending) yield chunk
+      while (true) {
+        const { done, value } = await puller.next()
+        if (done) return
+        yield value
+      }
+    }
+  }
 
   /**
    * @param {any} file The current file being processed.
