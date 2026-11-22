@@ -261,6 +261,8 @@ contextBridge.exposeInMainWorld('common', {
   linkAccount: (uri) => ipcRenderer.invoke('common:linkAccount', uri),
   handleProtocol: (data) => ipcRenderer.send('common:handleProtocol', data),
   setUpdateChannel: (channel) => ipcRenderer.send('common:setUpdateChannel', channel),
+  forkSettingsGet: () => ipcRenderer.invoke('common:forkSettingsGet'),
+  forkSettingsSet: (settings) => ipcRenderer.invoke('common:forkSettingsSet', settings),
   checkForUpdates: (channel) => ipcRenderer.send('common:checkForUpdates', channel),
   onUpdateAvailable: (callback) => ipcRenderer.on('common:onUpdateAvailable', (event, updateVersion) => callback(updateVersion)),
   onUpdateDownloaded: (callback) => ipcRenderer.on('common:onUpdateDownloaded', (event, updateVersion) => callback(updateVersion)),

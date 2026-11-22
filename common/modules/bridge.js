@@ -113,7 +113,10 @@ const electronDefaults = {
   clearPresence: noopVoid,
   showTextContextMenu: noopVoid,
   onSelectContextText: noopVoid,
-  getYouTube: async () => 'https://www.youtube-nocookie.com'
+  getYouTube: async () => 'https://www.youtube-nocookie.com',
+  /** FORK PATCH: null when the platform preload doesn't expose fork settings (netguard stays at its main-process default). */
+  forkSettingsGet: async () => null,
+  forkSettingsSet: async () => null
 }
 
 export const TORRENT = window.torrent || torrentDefaults

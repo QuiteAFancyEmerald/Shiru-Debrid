@@ -9,14 +9,14 @@
   let updatePolicy = 'off'
 
   onMount(async () => {
-    const forkSettings = await COMMON.forkSettingsGet()
+    const forkSettings = (await COMMON.forkSettingsGet?.()) ?? null
     netGuard = forkSettings?.netGuard !== false
     updatePolicy = forkSettings?.updatePolicy === 'fork' ? 'fork' : 'off'
   })
 
   async function saveNetGuard(value) {
     netGuard = value
-    const saved = await COMMON.forkSettingsSet({ netGuard: value })
+    const saved = (await COMMON.forkSettingsSet?.({ netGuard: value })) ?? null
     netGuard = saved?.netGuard !== false
     toast.success('Fork Setting Saved', {
       description: `Mullvad requirement ${netGuard ? 'enabled' : 'disabled'} — takes effect the next time the app starts.`
@@ -25,7 +25,7 @@
 
   async function saveUpdatePolicy(value) {
     updatePolicy = value === 'fork' ? 'fork' : 'off'
-    await COMMON.forkSettingsSet({ updatePolicy })
+    await COMMON.forkSettingsSet?.({ updatePolicy })
     toast.success('Fork Setting Saved', {
       description: `Update checks ${updatePolicy === 'fork' ? 'enabled for gabrieljcodes/Shiru (notify + releases link only)' : 'disabled — this build stays frozen'} — takes effect the next time the app starts.`
     })

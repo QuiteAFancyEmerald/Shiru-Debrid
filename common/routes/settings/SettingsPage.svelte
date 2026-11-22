@@ -58,10 +58,11 @@
   import AppTab from '@/routes/settings/tabs/AppTab.svelte'
   import ChangelogTab from '@/routes/settings/tabs/ChangelogTab.svelte'
   import ExtensionTab from '@/routes/settings/tabs/ExtensionTab.svelte'
+  import ForkTab from '@/routes/settings/tabs/ForkTab.svelte'
   import { status } from '@/modules/networking.js'
   import { modal } from '@/modules/navigation.js'
   import semver from 'semver'
-  import { Cloud, AppWindow, Puzzle, User, Heart, Logs, Play, Rss, LayoutDashboard } from 'lucide-svelte'
+  import { Cloud, AppWindow, Puzzle, User, Heart, Logs, Play, Rss, LayoutDashboard, GitFork } from 'lucide-svelte'
 
   export let statusTransition = false
 
@@ -94,6 +95,10 @@
     app: {
       name: 'App',
       icon: LayoutDashboard
+    },
+    fork: {
+      name: 'Fork',
+      icon: GitFork
     },
     changelog: {
       name: 'Changelog',
@@ -173,6 +178,13 @@
         <div class='root h-full w-full overflow-y-md-auto p-20 pt-5'>
           <div class='page pb-100'>
             <AppTab {version} {debugStore} bind:settings={$settings} />
+          </div>
+        </div>
+      </Tab>
+      <Tab>
+        <div class='root h-full w-full overflow-y-md-auto p-20 pt-5'>
+          <div class='page pb-100'>
+            <ForkTab />
           </div>
         </div>
       </Tab>
