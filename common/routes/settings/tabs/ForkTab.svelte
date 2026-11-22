@@ -27,7 +27,7 @@
     updatePolicy = value === 'fork' ? 'fork' : 'off'
     await COMMON.forkSettingsSet?.({ updatePolicy })
     toast.success('Fork Setting Saved', {
-      description: `Update checks ${updatePolicy === 'fork' ? 'enabled for gabrieljcodes/Shiru (notify + releases link only)' : 'disabled — this build stays frozen'} — takes effect the next time the app starts.`
+      description: `Update checks ${updatePolicy === 'fork' ? 'enabled for QuiteAFancyEmerald/Shiru-Debrid (notify + releases link only)' : 'disabled — this build stays frozen'} — takes effect the next time the app starts.`
     })
   }
 </script>
@@ -63,10 +63,10 @@
   </div>
 </SettingCard>
 
-<SettingCard title='Update Checks' description='Off keeps this build frozen — it never checks for anything. Enabled, the app checks the gabrieljcodes/Shiru releases feed and shows an update notification linking the release page; it never installs or replaces anything on its own. Takes effect on app restart.'>
+<SettingCard title='Update Checks' description='Off keeps this build frozen — it never checks for anything. Enabled, the app checks the QuiteAFancyEmerald/Shiru-Debrid releases feed and shows an update notification linking the release page; it never installs or replaces anything on its own. Takes effect on app restart.'>
   <select class='form-control bg-dark mw-220 w-220 text-truncate' value={updatePolicy} on:change={e => saveUpdatePolicy(e.currentTarget.value)}>
     <option value='off'>Off (Frozen Build)</option>
-    <option value='fork'>Fork (gabrieljcodes/Shiru)</option>
+    <option value='fork'>Fork (QuiteAFancyEmerald/Shiru-Debrid)</option>
   </select>
 </SettingCard>
 
